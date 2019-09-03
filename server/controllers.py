@@ -82,10 +82,12 @@ def list_users_chat(request):
         return make_response(400, 'Bad request', 'user is not exist')
 
     cursor.execute("""
-        SELECT m.* FROM chat
-        JOIN (SELECT chat, user FROM user_chat WHERE user = (?)) as s ON chat.id = s.chat
-        JOIN (SELECT * FROM messages ORDER BY -created_at) as m ON m.chat = chat.id
-        GROUP BY chat.id
+        SELECT chat.* FROM chat
+        JOIN (
+            SELECT messages.chat, MAX(created_at) FROM messages 
+            JOIN (SELECT chat, user FROM user_chat WHERE user = (?)) as u_c ON u_c.chat = messages.chat
+            GROUP BY messages.chat ORDER BY -created_at
+        ) as mes ON mes.chat = chat.id
     """, (data['user'],))
 
     descriptions = list(zip(*cursor.description))[0]
